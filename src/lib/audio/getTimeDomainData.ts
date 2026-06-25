@@ -1,5 +1,5 @@
-export function getTimeDomainData(analyser: AnalyserNode): Uint8Array {
-  const values = new Uint8Array(analyser.fftSize);
-  analyser.getByteTimeDomainData(values);
+export function getTimeDomainData(analyser: AnalyserNode): Float32Array {
+  const values = new Float32Array(analyser.fftSize);
+  analyser.getFloatTimeDomainData(values);
   return values;
 }

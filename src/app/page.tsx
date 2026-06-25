@@ -7,6 +7,7 @@ import ResultPanel from "@/components/ResultPanel";
 import SpectrumGraph from "@/components/SpectrumGraph";
 import VowelMap from "@/components/VowelMap";
 import VowelSelector from "@/components/VowelSelector";
+import type { AudioAnalyserSession } from "@/lib/audio/createAudioAnalyser";
 import { calculateStability } from "@/lib/analysis/calculateStability";
 import { classifyVowel } from "@/lib/analysis/classifyVowel";
 import { estimateFormants } from "@/lib/analysis/estimateFormants";
@@ -22,6 +23,8 @@ import type {
 export default function Home() {
   const [selectedVowel, setSelectedVowel] = useState<VowelSymbol>("あ");
   const [micStatus, setMicStatus] = useState<MicStatus>("idle");
+  const [audioSession, setAudioSession] =
+    useState<AudioAnalyserSession | null>(null);
   const [frame, setFrame] = useState<AnalysisFrame | null>(null);
   const formantHistoryRef = useRef<FormantEstimate[]>([]);
 
@@ -71,6 +74,11 @@ export default function Home() {
           <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-600">
             日本語の「あ・い・う・え・お」を対象に、ブラウザ内で音声特徴を可視化する練習支援ツールです。医療的診断や専門的評価ではありません。
           </p>
+          <p className="mt-3 text-xs text-zinc-500">
+            {audioSession
+              ? `AudioContext: ${audioSession.audioContext.sampleRate} Hz / FFT ${audioSession.analyser.fftSize}`
+              : "AudioContext: 未開始"}
+          </p>
         </header>
 
         <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
@@ -83,6 +91,7 @@ export default function Home() {
               status={micStatus}
               onStatusChange={setMicStatus}
               onFrame={handleMicFrame}
+              onSessionChange={setAudioSession}
             />
             <ResultPanel frame={frame} />
             <AdvicePanel messages={adviceMessages} />

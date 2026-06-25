@@ -17,18 +17,26 @@ type MicControlProps = {
   status: MicStatus;
   onStatusChange: (status: MicStatus) => void;
   onFrame: (frame: MicFrame) => void;
+  onSessionChange?: (session: AudioAnalyserSession | null) => void;
 };
 
 export default function MicControl({
   status,
   onStatusChange,
   onFrame,
+  onSessionChange,
 }: MicControlProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const sessionRef = useRef<AudioAnalyserSession | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
+  const onFrameRef = useRef(onFrame);
 
-  const stop = useCallback(async () => {
+  useEffect(() => {
+    onFrameRef.current = onFrame;
+  }, [onFrame]);
+
+  const stopSession = useCallback(async () => {
     if (animationFrameRef.current !== null) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
@@ -40,19 +48,38 @@ export default function MicControl({
     if (session) {
       session.source.disconnect();
       session.stream.getTracks().forEach((track) => track.stop());
-      await session.audioContext.close();
+      if (session.audioContext.state !== "closed") {
+        await session.audioContext.close();
+      }
     }
+  }, []);
+
+  const stop = useCallback(async () => {
+    await stopSession();
+    onSessionChange?.(null);
 
     onStatusChange("idle");
-  }, [onStatusChange]);
+  }, [onSessionChange, onStatusChange, stopSession]);
 
   const start = useCallback(async () => {
     setErrorMessage(null);
     onStatusChange("requesting");
 
     try {
+      await stopSession();
       const session = await createAudioAnalyser();
+
+      if (!mountedRef.current) {
+        session.source.disconnect();
+        session.stream.getTracks().forEach((track) => track.stop());
+        if (session.audioContext.state !== "closed") {
+          await session.audioContext.close();
+        }
+        return;
+      }
+
       sessionRef.current = session;
+      onSessionChange?.(session);
       onStatusChange("recording");
 
       const tick = () => {
@@ -69,12 +96,14 @@ export default function MicControl({
           currentSession.audioContext.sampleRate,
         );
 
-        onFrame({ frequencyData, volume });
+        onFrameRef.current({ frequencyData, volume });
         animationFrameRef.current = requestAnimationFrame(tick);
       };
 
       tick();
     } catch (error) {
+      await stopSession();
+      onSessionChange?.(null);
       onStatusChange("error");
       setErrorMessage(
         error instanceof Error
@@ -82,25 +111,19 @@ export default function MicControl({
           : "マイクの開始に失敗しました。",
       );
     }
-  }, [onFrame, onStatusChange]);
+  }, [onSessionChange, onStatusChange, stopSession]);
 
   useEffect(() => {
     return () => {
-      if (animationFrameRef.current !== null) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-
-      const session = sessionRef.current;
-      if (session) {
-        session.source.disconnect();
-        session.stream.getTracks().forEach((track) => track.stop());
-        void session.audioContext.close();
-      }
+      mountedRef.current = false;
+      onSessionChange?.(null);
+      void stopSession();
     };
-  }, []);
+  }, [onSessionChange, stopSession]);
 
   const isRecording = status === "recording";
   const isRequesting = status === "requesting";
+  const isError = status === "error";
 
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
@@ -115,10 +138,20 @@ export default function MicControl({
           className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
             isRecording
               ? "bg-emerald-100 text-emerald-800"
+              : isRequesting
+                ? "bg-sky-100 text-sky-800"
+                : isError
+                  ? "bg-red-100 text-red-800"
               : "bg-zinc-100 text-zinc-700"
           }`}
         >
-          {isRecording ? "解析中" : "停止中"}
+          {isRecording
+            ? "使用中"
+            : isRequesting
+              ? "許可待ち"
+              : isError
+                ? "エラー"
+                : "停止中"}
         </span>
       </div>
       <button

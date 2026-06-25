@@ -39,7 +39,10 @@ export default function ResultPanel({ frame }: ResultPanelProps) {
         </div>
       </div>
       <div className="mt-4">
-        <StabilityMeter stability={frame?.stability ?? null} />
+        <StabilityMeter
+          volume={frame?.volume ?? null}
+          stability={frame?.stability ?? null}
+        />
       </div>
     </section>
   );

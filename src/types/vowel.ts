@@ -4,6 +4,7 @@ export type MicStatus = "idle" | "requesting" | "recording" | "error";
 
 export type FrequencyBin = {
   frequencyHz: number;
+  decibels: number;
   level: number;
 };
 
