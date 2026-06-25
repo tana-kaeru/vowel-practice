@@ -14,18 +14,35 @@ export type FormantEstimate = {
   confidence: number;
 };
 
+export type FrequencyRange = {
+  min: number;
+  max: number;
+};
+
+export type MapPosition = {
+  x: number;
+  y: number;
+};
+
 export type VowelTarget = {
   vowel: VowelSymbol;
   label: string;
-  f1Hz: number;
-  f2Hz: number;
+  roman: string;
+  f1Range: FrequencyRange;
+  f2Range: FrequencyRange;
+  mapPosition: MapPosition;
   colorClass: string;
+  color: string;
 };
 
 export type VowelClassification = {
-  vowel: VowelSymbol;
+  selectedVowel: VowelSymbol;
+  nearestVowel: VowelSymbol;
   confidence: number;
   distance: number;
+  isInsideTargetRange: boolean;
+  f1Diff: number;
+  f2Diff: number;
 };
 
 export type StabilityResult = {
@@ -45,8 +62,8 @@ export type AdviceMessage = {
 
 export type AnalysisFrame = {
   selectedVowel: VowelSymbol;
-  formants: FormantEstimate;
-  classification: VowelClassification;
+  formants: FormantEstimate | null;
+  classification: VowelClassification | null;
   stability: StabilityResult;
   volume: number;
   frequencyData: FrequencyBin[];

@@ -26,11 +26,14 @@ export default function Home() {
   const [audioSession, setAudioSession] =
     useState<AudioAnalyserSession | null>(null);
   const [frame, setFrame] = useState<AnalysisFrame | null>(null);
+  const [formantTrail, setFormantTrail] = useState<FormantEstimate[]>([]);
   const formantHistoryRef = useRef<FormantEstimate[]>([]);
+  const lastAnalysisAtRef = useRef(0);
 
   const handleSelectVowel = useCallback((vowel: VowelSymbol) => {
     setSelectedVowel(vowel);
     setFrame(null);
+    setFormantTrail([]);
     formantHistoryRef.current = [];
   }, []);
 
@@ -42,12 +45,28 @@ export default function Home() {
       frequencyData: FrequencyBin[];
       volume: number;
     }) => {
-      const formants = estimateFormants(frequencyData, selectedVowel, volume);
-      formantHistoryRef.current = [...formantHistoryRef.current, formants].slice(
-        -48,
-      );
-      const classification = classifyVowel(formants, selectedVowel);
+      const now = performance.now();
+
+      if (now - lastAnalysisAtRef.current < 100) {
+        return;
+      }
+
+      lastAnalysisAtRef.current = now;
+
+      const formants = estimateFormants(frequencyData, volume);
+
+      if (formants) {
+        formantHistoryRef.current = [
+          ...formantHistoryRef.current,
+          formants,
+        ].slice(-48);
+      }
+
+      const classification = formants
+        ? classifyVowel(formants, selectedVowel)
+        : null;
       const stability = calculateStability(formantHistoryRef.current);
+      const nextTrail = formantHistoryRef.current.slice(-18);
 
       setFrame({
         selectedVowel,
@@ -57,6 +76,7 @@ export default function Home() {
         volume,
         frequencyData,
       });
+      setFormantTrail(nextTrail);
     },
     [selectedVowel],
   );
@@ -101,6 +121,7 @@ export default function Home() {
             <VowelMap
               selectedVowel={selectedVowel}
               formants={frame?.formants ?? null}
+              trail={formantTrail}
             />
             <SpectrumGraph data={frame?.frequencyData ?? []} />
           </div>

@@ -1,4 +1,5 @@
 import StabilityMeter from "@/components/StabilityMeter";
+import { getVowelTarget } from "@/lib/data/vowelTargets";
 import type { AnalysisFrame } from "@/types/vowel";
 
 type ResultPanelProps = {
@@ -6,6 +7,11 @@ type ResultPanelProps = {
 };
 
 export default function ResultPanel({ frame }: ResultPanelProps) {
+  const selectedTarget = frame ? getVowelTarget(frame.selectedVowel) : null;
+  const nearestTarget = frame?.classification
+    ? getVowelTarget(frame.classification.nearestVowel)
+    : null;
+
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
       <div className="mb-4">
@@ -14,9 +20,15 @@ export default function ResultPanel({ frame }: ResultPanelProps) {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-lg bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">推定母音</p>
+          <p className="text-xs text-zinc-500">対象母音</p>
           <p className="mt-1 text-2xl font-semibold text-zinc-950">
-            {frame?.classification.vowel ?? "--"}
+            {selectedTarget?.label ?? "--"}
+          </p>
+        </div>
+        <div className="rounded-lg bg-zinc-50 p-3">
+          <p className="text-xs text-zinc-500">近い母音</p>
+          <p className="mt-1 text-2xl font-semibold text-zinc-950">
+            {nearestTarget?.label ?? "--"}
           </p>
         </div>
         <div className="rounded-lg bg-zinc-50 p-3">
@@ -28,13 +40,31 @@ export default function ResultPanel({ frame }: ResultPanelProps) {
         <div className="rounded-lg bg-zinc-50 p-3">
           <p className="text-xs text-zinc-500">F1</p>
           <p className="mt-1 text-lg font-semibold text-zinc-950">
-            {frame ? `${frame.formants.f1Hz} Hz` : "--"}
+            {frame?.formants ? `${frame.formants.f1Hz} Hz` : "--"}
           </p>
         </div>
         <div className="rounded-lg bg-zinc-50 p-3">
           <p className="text-xs text-zinc-500">F2</p>
           <p className="mt-1 text-lg font-semibold text-zinc-950">
-            {frame ? `${frame.formants.f2Hz} Hz` : "--"}
+            {frame?.formants ? `${frame.formants.f2Hz} Hz` : "--"}
+          </p>
+        </div>
+        <div className="rounded-lg bg-zinc-50 p-3">
+          <p className="text-xs text-zinc-500">目標範囲</p>
+          <p className="mt-1 text-lg font-semibold text-zinc-950">
+            {frame?.classification
+              ? frame.classification.isInsideTargetRange
+                ? "範囲内"
+                : "調整中"
+              : "--"}
+          </p>
+        </div>
+        <div className="rounded-lg bg-zinc-50 p-3">
+          <p className="text-xs text-zinc-500">confidence</p>
+          <p className="mt-1 text-lg font-semibold text-zinc-950">
+            {frame?.formants
+              ? `${Math.round(frame.formants.confidence * 100)}%`
+              : "--"}
           </p>
         </div>
       </div>

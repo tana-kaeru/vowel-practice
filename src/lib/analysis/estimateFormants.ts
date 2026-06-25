@@ -1,30 +1,87 @@
-import type { FormantEstimate, FrequencyBin, VowelSymbol } from "@/types/vowel";
-import { VOWEL_TARGETS } from "@/lib/data/vowelTargets";
+import type { FormantEstimate, FrequencyBin } from "@/types/vowel";
+
+const MIN_VOLUME_FOR_FORMANTS = 0.08;
+const F1_RANGE_HZ = { min: 200, max: 1000 };
+const F2_RANGE_HZ = { min: 800, max: 3000 };
+const MIN_PEAK_DECIBELS = -82;
+const SMOOTHING_RADIUS = 2;
+
+type SmoothedBin = FrequencyBin & {
+  smoothedDecibels: number;
+};
+
+function smoothFrequencyData(frequencyData: FrequencyBin[]): SmoothedBin[] {
+  return frequencyData.map((bin, index) => {
+    const start = Math.max(0, index - SMOOTHING_RADIUS);
+    const end = Math.min(frequencyData.length - 1, index + SMOOTHING_RADIUS);
+    let total = 0;
+    let count = 0;
+
+    for (let current = start; current <= end; current += 1) {
+      total += frequencyData[current].decibels;
+      count += 1;
+    }
+
+    return {
+      ...bin,
+      smoothedDecibels: total / count,
+    };
+  });
+}
+
+function findPeak(
+  bins: SmoothedBin[],
+  range: { min: number; max: number },
+  minFrequencyHz = range.min,
+) {
+  const candidates = bins.filter(
+    (bin) =>
+      bin.frequencyHz >= range.min &&
+      bin.frequencyHz <= range.max &&
+      bin.frequencyHz >= minFrequencyHz &&
+      bin.smoothedDecibels >= MIN_PEAK_DECIBELS,
+  );
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  return candidates.reduce((best, bin) =>
+    bin.smoothedDecibels > best.smoothedDecibels ? bin : best,
+  );
+}
 
 export function estimateFormants(
   frequencyData: FrequencyBin[],
-  selectedVowel: VowelSymbol,
   volume: number,
-): FormantEstimate {
-  const target = VOWEL_TARGETS.find((item) => item.vowel === selectedVowel);
-  const strongestBin = frequencyData.reduce<FrequencyBin | undefined>(
-    (current, bin) => (!current || bin.level > current.level ? bin : current),
-    undefined,
-  );
-
-  if (!target || !strongestBin || volume < 0.03) {
-    return {
-      f1Hz: target?.f1Hz ?? 500,
-      f2Hz: target?.f2Hz ?? 1500,
-      confidence: 0.1,
-    };
+): FormantEstimate | null {
+  if (volume < MIN_VOLUME_FOR_FORMANTS || frequencyData.length === 0) {
+    return null;
   }
 
-  const drift = Math.max(-120, Math.min(120, strongestBin.frequencyHz / 18 - 80));
+  const smoothedBins = smoothFrequencyData(frequencyData);
+  const f1Peak = findPeak(smoothedBins, F1_RANGE_HZ);
+
+  if (!f1Peak) {
+    return null;
+  }
+
+  const f2Peak =
+    findPeak(smoothedBins, F2_RANGE_HZ, f1Peak.frequencyHz + 250) ??
+    findPeak(smoothedBins, F2_RANGE_HZ);
+
+  if (!f2Peak) {
+    return null;
+  }
+
+  const f1Prominence = Math.max(0, f1Peak.smoothedDecibels - MIN_PEAK_DECIBELS);
+  const f2Prominence = Math.max(0, f2Peak.smoothedDecibels - MIN_PEAK_DECIBELS);
+  const peakConfidence = Math.min(1, (f1Prominence + f2Prominence) / 80);
+  const volumeConfidence = Math.min(1, volume / 0.35);
 
   return {
-    f1Hz: Math.round(target.f1Hz + drift),
-    f2Hz: Math.round(target.f2Hz - drift * 1.8),
-    confidence: Math.min(0.85, 0.25 + volume),
+    f1Hz: f1Peak.frequencyHz,
+    f2Hz: f2Peak.frequencyHz,
+    confidence: Math.round(peakConfidence * volumeConfidence * 100) / 100,
   };
 }

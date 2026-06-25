@@ -28,6 +28,9 @@ export default function AdvicePanel({ messages }: AdvicePanelProps) {
           </article>
         ))}
       </div>
+      <p className="mt-3 text-xs leading-5 text-zinc-500">
+        この表示は医療的診断や専門的評価ではなく、発声練習のための簡易的な可視化です。
+      </p>
     </section>
   );
 }
