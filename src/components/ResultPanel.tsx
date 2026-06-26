@@ -30,15 +30,22 @@ export default function ResultPanel({ frame }: ResultPanelProps) {
   const confidence = frame?.formants?.confidence ?? null;
 
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
-      <div className="mb-4">
-        <h2 className="text-base font-semibold text-zinc-950">結果</h2>
+    <section className="min-h-[520px] rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
+      <div className="mb-4 min-h-[48px]">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-base font-semibold text-zinc-950">結果</h2>
+          {frame?.isReferenceResult ? (
+            <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800">
+              参考判定
+            </span>
+          ) : null}
+        </div>
         <p className="mt-1 text-sm text-zinc-600">
           {frame?.statusMessage ?? "マイク開始後に表示します。"}
         </p>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-lg bg-zinc-50 p-3">
+        <div className="min-h-[82px] rounded-lg bg-zinc-50 p-3">
           <p className="text-xs text-zinc-500">状態</p>
           <p className="mt-1 text-lg font-semibold text-zinc-950">
             {frame?.status === "ready"
@@ -48,37 +55,37 @@ export default function ResultPanel({ frame }: ResultPanelProps) {
                 : "--"}
           </p>
         </div>
-        <div className="rounded-lg bg-zinc-50 p-3">
+        <div className="min-h-[82px] rounded-lg bg-zinc-50 p-3">
           <p className="text-xs text-zinc-500">対象母音</p>
           <p className="mt-1 text-2xl font-semibold text-zinc-950">
             {selectedTarget?.label ?? "--"}
           </p>
         </div>
-        <div className="rounded-lg bg-zinc-50 p-3">
+        <div className="min-h-[82px] rounded-lg bg-zinc-50 p-3">
           <p className="text-xs text-zinc-500">近い母音</p>
           <p className="mt-1 text-2xl font-semibold text-zinc-950">
             {nearestTarget?.label ?? "--"}
           </p>
         </div>
-        <div className="rounded-lg bg-zinc-50 p-3">
+        <div className="min-h-[82px] rounded-lg bg-zinc-50 p-3">
           <p className="text-xs text-zinc-500">音量</p>
           <p className="mt-1 text-2xl font-semibold text-zinc-950">
             {frame ? `${Math.round(frame.volume * 100)}%` : "--"}
           </p>
         </div>
-        <div className="rounded-lg bg-zinc-50 p-3">
+        <div className="min-h-[82px] rounded-lg bg-zinc-50 p-3">
           <p className="text-xs text-zinc-500">F1</p>
           <p className="mt-1 text-lg font-semibold text-zinc-950">
             {frame?.formants ? `${frame.formants.f1Hz} Hz` : "--"}
           </p>
         </div>
-        <div className="rounded-lg bg-zinc-50 p-3">
+        <div className="min-h-[82px] rounded-lg bg-zinc-50 p-3">
           <p className="text-xs text-zinc-500">F2</p>
           <p className="mt-1 text-lg font-semibold text-zinc-950">
             {frame?.formants ? `${frame.formants.f2Hz} Hz` : "--"}
           </p>
         </div>
-        <div className="rounded-lg bg-zinc-50 p-3">
+        <div className="min-h-[82px] rounded-lg bg-zinc-50 p-3">
           <p className="text-xs text-zinc-500">目標範囲</p>
           <p className="mt-1 text-lg font-semibold text-zinc-950">
             {frame?.classification
@@ -88,7 +95,7 @@ export default function ResultPanel({ frame }: ResultPanelProps) {
               : "--"}
           </p>
         </div>
-        <div className="rounded-lg bg-zinc-50 p-3">
+        <div className="min-h-[82px] rounded-lg bg-zinc-50 p-3">
           <p className="text-xs text-zinc-500">confidence</p>
           <p className="mt-1 text-lg font-semibold text-zinc-950">
             {confidence === null

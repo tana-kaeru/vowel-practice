@@ -99,14 +99,22 @@ export default function StabilityMeter({
           ? `${stability.label} (${stabilityScore}%) / 揺れ ${stability.variation}`
           : "--"}
       </p>
-      <p className="mt-2 text-[11px] leading-5 text-zinc-400">
-        rawRMS: {formatRms(rawRms)} / effectiveRMS:{" "}
-        {formatRms(effectiveRms)} / gain:{" "}
-        {softwareGain === null ? "--" : `x${softwareGain}`} / noiseFloor:{" "}
-        {formatRms(noiseFloor)} / threshold: {formatRms(currentThreshold)} /
-        dBFS: {dbfs === null ? "--" : `${dbfs.toFixed(1)} dB`} / status:{" "}
-        {status ?? "--"}
-      </p>
+      <details className="mt-2 text-[11px] leading-5 text-zinc-400">
+        <summary className="cursor-pointer select-none">
+          デバッグ値を表示
+        </summary>
+        <p className="mt-1">
+          rawRMS: {formatRms(rawRms)} / effectiveRMS:{" "}
+          {formatRms(effectiveRms)} / meterPercent:{" "}
+          {volume === null ? "--" : `${volumeScore}%`} / gain:{" "}
+          {softwareGain === null ? "--" : `x${softwareGain}`} / noiseFloor:{" "}
+          {formatRms(noiseFloor)} / tooQuietThreshold:{" "}
+          {formatRms(currentThreshold)} / goodVolumeThreshold:{" "}
+          {formatRms(VOLUME_THRESHOLDS.good)} / dBFS:{" "}
+          {dbfs === null ? "--" : `${dbfs.toFixed(1)} dB`} / status:{" "}
+          {status ?? "--"}
+        </p>
+      </details>
     </div>
   );
 }

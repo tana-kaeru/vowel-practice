@@ -6,8 +6,16 @@ import type { AudioAnalyserSession } from "@/lib/audio/createAudioAnalyser";
 import { getFrequencyData } from "@/lib/audio/getFrequencyData";
 import { getTimeDomainData } from "@/lib/audio/getTimeDomainData";
 import { getRmsLevel } from "@/lib/audio/getVolumeLevel";
-import { MIC_SENSITIVITY_CONFIG } from "@/lib/analysis/stabilizeFormants";
-import type { FrequencyBin, MicSensitivity, MicStatus } from "@/types/vowel";
+import {
+  MIC_SENSITIVITY_CONFIG,
+  PRONUNCIATION_MODE_CONFIG,
+} from "@/lib/analysis/stabilizeFormants";
+import type {
+  FrequencyBin,
+  MicSensitivity,
+  MicStatus,
+  PronunciationMode,
+} from "@/types/vowel";
 
 type MicFrame = {
   frequencyData: FrequencyBin[];
@@ -17,8 +25,10 @@ type MicFrame = {
 type MicControlProps = {
   status: MicStatus;
   sensitivity: MicSensitivity;
+  pronunciationMode: PronunciationMode;
   onStatusChange: (status: MicStatus) => void;
   onSensitivityChange: (sensitivity: MicSensitivity) => void;
+  onPronunciationModeChange: (mode: PronunciationMode) => void;
   onFrame: (frame: MicFrame) => void;
   onSessionChange?: (session: AudioAnalyserSession | null) => void;
 };
@@ -26,8 +36,10 @@ type MicControlProps = {
 export default function MicControl({
   status,
   sensitivity,
+  pronunciationMode,
   onStatusChange,
   onSensitivityChange,
+  onPronunciationModeChange,
   onFrame,
   onSessionChange,
 }: MicControlProps) {
@@ -192,6 +204,34 @@ export default function MicControl({
         <p className="mt-2 text-xs leading-5 text-zinc-500">
           AirPodsなどのBluetoothマイクでは「高」または「最大」にすると安定する場合があります。
         </p>
+      </div>
+      <div className="mt-4">
+        <p className="mb-2 text-xs font-medium text-zinc-600">判定モード</p>
+        <div className="grid grid-cols-2 gap-2">
+          {(["standard", "short"] as const).map((item) => {
+            const isSelected = item === pronunciationMode;
+
+            return (
+              <button
+                key={item}
+                type="button"
+                onClick={() => onPronunciationModeChange(item)}
+                className={`h-9 rounded-lg border px-3 text-sm font-medium transition ${
+                  isSelected
+                    ? "border-zinc-950 bg-zinc-950 text-white"
+                    : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                }`}
+              >
+                {PRONUNCIATION_MODE_CONFIG[item].label}
+              </button>
+            );
+          })}
+        </div>
+        {pronunciationMode === "short" ? (
+          <p className="mt-2 text-xs leading-5 text-zinc-500">
+            短めモードでは、短い発声から参考判定します。標準モードより結果が揺れやすい場合があります。
+          </p>
+        ) : null}
       </div>
       {errorMessage ? (
         <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">

@@ -1,12 +1,46 @@
-import type { FormantEstimate, MicSensitivity } from "@/types/vowel";
+import type {
+  FormantEstimate,
+  MicSensitivity,
+  PronunciationMode,
+} from "@/types/vowel";
 
 export const FORMANT_HISTORY_SIZE = 7;
-export const MIN_ANALYSIS_DELAY_MS = 200;
-export const MIN_STABLE_VOICE_MS = 350;
-export const MIN_CONFIDENCE = 0.45;
 export const MIN_STABILITY_SCORE = 0.48;
 export const NOISE_FLOOR_CALIBRATION_MS = 800;
 export const DBFS_MIN_RMS = 0.000001;
+export const ADVICE_MIN_DISPLAY_MS = 1500;
+export const LAST_RESULT_HOLD_MS = 2000;
+export const SAME_CANDIDATE_REQUIRED_FRAMES = 4;
+export const SWITCH_DISTANCE_MARGIN = 0.15;
+export const DISPLAY_FORMANT_SMOOTHING = 0.2;
+export const MAX_TRACE_POINTS = 50;
+export const MAX_COMPLETED_TRACES = 5;
+
+export const PRONUNCIATION_MODE_CONFIG: Record<
+  PronunciationMode,
+  {
+    label: string;
+    minVoiceDurationMs: number;
+    initialIgnoreMs: number;
+    requiredStableFrames: number;
+    minConfidence: number;
+  }
+> = {
+  standard: {
+    label: "標準",
+    minVoiceDurationMs: 600,
+    initialIgnoreMs: 200,
+    requiredStableFrames: 4,
+    minConfidence: 0.55,
+  },
+  short: {
+    label: "短め",
+    minVoiceDurationMs: 250,
+    initialIgnoreMs: 80,
+    requiredStableFrames: 2,
+    minConfidence: 0.45,
+  },
+};
 
 export const VOLUME_THRESHOLDS = {
   tooQuiet: 0.012,

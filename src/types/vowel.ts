@@ -4,6 +4,8 @@ export type MicStatus = "idle" | "requesting" | "recording" | "error";
 
 export type MicSensitivity = "low" | "standard" | "high" | "max";
 
+export type PronunciationMode = "standard" | "short";
+
 export type FrequencyBin = {
   frequencyHz: number;
   decibels: number;
@@ -77,6 +79,7 @@ export type AnalysisFrame = {
   selectedVowel: VowelSymbol;
   status: AnalysisStatus;
   statusMessage: string;
+  isReferenceResult?: boolean;
   formants: FormantEstimate | null;
   classification: VowelClassification | null;
   stability: StabilityResult;
@@ -89,4 +92,23 @@ export type AnalysisFrame = {
   currentThreshold: number;
   micSensitivity: MicSensitivity;
   frequencyData: FrequencyBin[];
+};
+
+export type VowelTracePoint = {
+  f1Hz: number;
+  f2Hz: number;
+  timestamp: number;
+  confidence: number;
+  status: AnalysisStatus;
+};
+
+export type VowelTrace = {
+  id: string;
+  targetVowel: VowelSymbol;
+  mode: PronunciationMode;
+  points: VowelTracePoint[];
+  startedAt: number;
+  endedAt: number | null;
+  result: FormantEstimate | null;
+  isCurrent: boolean;
 };

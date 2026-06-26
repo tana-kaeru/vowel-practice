@@ -1,10 +1,15 @@
-import type { FormantEstimate, VowelSymbol } from "@/types/vowel";
+import type { FormantEstimate, VowelSymbol, VowelTrace } from "@/types/vowel";
 import { VOWEL_TARGETS } from "@/lib/data/vowelTargets";
 
 type VowelMapProps = {
   selectedVowel: VowelSymbol;
   formants: FormantEstimate | null;
   trail: FormantEstimate[];
+  currentTrace: VowelTrace | null;
+  completedTraces: VowelTrace[];
+  showTraceHistory: boolean;
+  onClearTraceHistory: () => void;
+  onToggleTraceHistory: (show: boolean) => void;
 };
 
 const MAP_F1_RANGE = { min: 200, max: 1000 };
@@ -37,24 +42,58 @@ function getAreaRect(target: (typeof VOWEL_TARGETS)[number]) {
   };
 }
 
+function getTracePoints(trace: VowelTrace) {
+  return trace.points.map((point) => getPosition(point.f1Hz, point.f2Hz));
+}
+
+function getPolylinePoints(points: { x: number; y: number }[]) {
+  return points.map((point) => `${point.x},${point.y}`).join(" ");
+}
+
+const HISTORY_OPACITY = [0.55, 0.35, 0.22, 0.14, 0.08];
+
 export default function VowelMap({
   selectedVowel,
   formants,
   trail,
+  currentTrace,
+  completedTraces,
+  showTraceHistory,
+  onClearTraceHistory,
+  onToggleTraceHistory,
 }: VowelMapProps) {
   const currentPosition = formants
     ? getPosition(formants.f1Hz, formants.f2Hz)
     : null;
   const trailPoints = trail.map((item) => getPosition(item.f1Hz, item.f2Hz));
-  const polylinePoints = trailPoints
-    .map((point) => `${point.x},${point.y}`)
-    .join(" ");
+  const polylinePoints = getPolylinePoints(trailPoints);
+  const visibleCompletedTraces = showTraceHistory ? completedTraces : [];
+  const currentTracePoints = currentTrace ? getTracePoints(currentTrace) : [];
+  const currentTracePolyline = getPolylinePoints(currentTracePoints);
 
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
-      <div className="mb-3">
-        <h2 className="text-base font-semibold text-zinc-950">母音マップ</h2>
-        <p className="mt-1 text-sm text-zinc-600">F1/F2の推定位置</p>
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-zinc-950">母音マップ</h2>
+          <p className="mt-1 text-sm text-zinc-600">F1/F2の推定位置</p>
+        </div>
+        <div className="flex shrink-0 gap-2">
+          <button
+            type="button"
+            onClick={() => onToggleTraceHistory(!showTraceHistory)}
+            className="h-8 rounded-lg border border-zinc-200 px-2 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
+          >
+            履歴{showTraceHistory ? "表示" : "非表示"}
+          </button>
+          <button
+            type="button"
+            onClick={onClearTraceHistory}
+            className="h-8 rounded-lg border border-zinc-200 px-2 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
+          >
+            履歴をクリア
+          </button>
+        </div>
       </div>
       <div className="overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50">
         <svg
@@ -133,6 +172,54 @@ export default function VowelMap({
               </g>
             );
           })}
+          {visibleCompletedTraces.map((trace, traceIndex) => {
+            const points = getTracePoints(trace);
+            const opacity =
+              HISTORY_OPACITY[
+                Math.max(0, visibleCompletedTraces.length - 1 - traceIndex)
+              ] ?? 0.08;
+            const linePoints = getPolylinePoints(points);
+            const lastPoint = points.at(-1);
+
+            return (
+              <g key={trace.id} opacity={opacity}>
+                {linePoints ? (
+                  <polyline
+                    points={linePoints}
+                    fill="none"
+                    stroke="#0f766e"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                ) : null}
+                {lastPoint ? (
+                  <circle cx={lastPoint.x} cy={lastPoint.y} r="4" fill="#0f766e" />
+                ) : null}
+              </g>
+            );
+          })}
+          {currentTracePolyline ? (
+            <polyline
+              points={currentTracePolyline}
+              fill="none"
+              stroke="#18181b"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity="0.9"
+            />
+          ) : null}
+          {currentTracePoints.map((point, index) => (
+            <circle
+              key={`current-${point.x}-${point.y}-${index}`}
+              cx={point.x}
+              cy={point.y}
+              r="3"
+              fill="#18181b"
+              opacity={0.22 + (index / Math.max(1, currentTracePoints.length - 1)) * 0.5}
+            />
+          ))}
           {polylinePoints ? (
             <polyline
               points={polylinePoints}

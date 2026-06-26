@@ -22,30 +22,14 @@ export function generateAdvice(frame: AnalysisFrame | null): AdviceMessage[] {
       createAdvice(
         "start",
         "info",
-        "母音を選んで発声",
-        "マイクを開始して、選んだ母音を1から2秒ほど同じ強さで伸ばしてみてください。",
+        "準備ができています",
+        "母音を選び、マイクを開始すると声の特徴を表示します。",
       ),
-    ];
-  }
-
-  if (frame.status === "no_voice") {
-    return [
       createAdvice(
-        "no-voice",
+        "start-next",
         "info",
-        "声らしい入力を待っています",
-        "Bluetoothマイクでは入力レベルが小さく出ることがあります。母音を少し長く、はっきり発音してみましょう。",
-      ),
-    ];
-  }
-
-  if (frame.status === "too_quiet") {
-    return [
-      createAdvice(
-        "volume-low",
-        "warning",
-        "マイクに入る音量が少し小さめです",
-        "声は検出されていますが、解析には少し足りない状態です。AirPodsなどのBluetoothマイクでは、マイク感度を「高」または「最大」にすると安定する場合があります。",
+        "次に試すこと",
+        "選んだ母音を1から2秒ほど同じ強さで伸ばしてみてください。",
       ),
     ];
   }
@@ -53,54 +37,50 @@ export function generateAdvice(frame: AnalysisFrame | null): AdviceMessage[] {
   if (frame.status === "calibrating_noise") {
     return [
       createAdvice(
-        "calibrating",
+        "calibrating-good",
         "info",
-        "環境音を測定中です",
-        "マイク開始直後の環境音を基準にして、音声検出のしきい値を調整しています。",
+        "マイクを準備しています",
+        "入力は取得できています。環境音の基準を短く測定しています。",
+      ),
+      createAdvice(
+        "calibrating-next",
+        "info",
+        "次に試すこと",
+        "測定が終わったら、選んだ母音を自然な声量で伸ばしてみてください。",
       ),
     ];
   }
 
-  if (frame.status === "listening") {
+  if (frame.status === "no_voice") {
     return [
       createAdvice(
-        "listening",
+        "no-voice-good",
         "info",
-        "音が安定してから判定します",
-        "発声開始直後は推定値が揺れやすいため、少し待ってから表示します。",
+        "マイクは待機しています",
+        "環境音に近い入力として見ています。発声すると母音マップに軌跡が残ります。",
+      ),
+      createAdvice(
+        "no-voice-next",
+        "info",
+        "次に試すこと",
+        "選んだ母音を少し長めに伸ばしてみてください。Bluetoothマイクでは感度を高めると安定する場合があります。",
       ),
     ];
   }
 
-  if (frame.status === "too_short") {
+  if (frame.status === "too_quiet") {
     return [
       createAdvice(
-        "too-short",
+        "volume-detected",
         "info",
-        "もう少し長く伸ばしてみましょう",
-        "母音を少し長く伸ばすと、F1/F2の位置を安定して見やすくなります。",
+        "声は拾えています",
+        "マイクに入る音量が少し控えめですが、入力は検出できています。",
       ),
-    ];
-  }
-
-  if (frame.status === "unstable") {
-    return [
       createAdvice(
-        "unstable",
+        "volume-next",
         "info",
-        "声の高さと大きさを一定にしてみましょう",
-        "推定値の揺れが大きい間は判定を保留します。同じ母音を急に変えずに伸ばしてみてください。",
-      ),
-    ];
-  }
-
-  if (frame.status === "low_confidence") {
-    return [
-      createAdvice(
-        "low-confidence",
-        "info",
-        "音が安定してから判定します",
-        "confidenceが低いため、近い母音はまだ断定しません。声の大きさと口の形を一定にしてみましょう。",
+        "次に試すこと",
+        "マイク感度を「高」または「最大」にするか、もう少しだけはっきり発音してみてください。",
       ),
     ];
   }
@@ -111,33 +91,31 @@ export function generateAdvice(frame: AnalysisFrame | null): AdviceMessage[] {
     : null;
   const advice: AdviceMessage[] = [];
 
-  if (frame.noiseFloor !== null && frame.noiseFloor > VOLUME_THRESHOLDS.highNoiseFloor) {
+  if (frame.isReferenceResult) {
     advice.push(
       createAdvice(
-        "noise-floor-high",
-        "warning",
-        "周囲の音が少し大きめです",
-        "環境音が高めに測定されています。可能であれば静かな場所で試すと、音声検出が安定しやすくなります。",
+        "reference-result",
+        "info",
+        "短めの発声から推定しています",
+        "1回分の発声軌跡から代表値を出しています。今回は参考ヒントとして見てください。",
       ),
     );
-  }
-
-  if (frame.effectiveRms < VOLUME_THRESHOLDS.good) {
+  } else if (frame.effectiveRms >= VOLUME_THRESHOLDS.good) {
     advice.push(
       createAdvice(
-        "volume-low",
-        "warning",
-        "マイクに入る音量が少し小さめです",
-        "Bluetoothマイクでは入力レベルが小さく出ることがあります。マイク感度を「高」または「最大」にすると安定する場合があります。",
+        "volume-good",
+        "success",
+        "声はしっかり拾えています",
+        "音量は十分です。このまま口の形を保って母音を伸ばしてみましょう。",
       ),
     );
   } else {
     advice.push(
       createAdvice(
-        "volume-good",
-        "success",
-        "声はしっかり出ています",
-        "このくらいの音量を保てると、母音マップ上の動きが見やすくなります。",
+        "voice-detected",
+        "info",
+        "声は拾えています",
+        "もう少しだけ長く伸ばすと、母音の位置が安定しやすくなります。",
       ),
     );
   }
@@ -145,13 +123,13 @@ export function generateAdvice(frame: AnalysisFrame | null): AdviceMessage[] {
   if (!frame.formants || !frame.classification || !selectedTarget) {
     advice.push(
       createAdvice(
-        "no-formants",
+        "listening-next",
         "info",
-        "推定を待っています",
-        "短い音や周囲の音が多い場合は推定が出にくいことがあります。母音を少し長めに伸ばしてみてください。",
+        "次に試すこと",
+        "母音を少し長く伸ばしてみてください。F1/F2が取れると、口の開きや響きの方向を表示します。",
       ),
     );
-    return advice;
+    return advice.slice(0, 2);
   }
 
   if (frame.classification.isInsideTargetRange) {
@@ -159,7 +137,7 @@ export function generateAdvice(frame: AnalysisFrame | null): AdviceMessage[] {
       createAdvice(
         "inside-target",
         "success",
-        "目標エリアに入っています",
+        "次に試すこと",
         `今の推定値は「${selectedTarget.label}」の目標範囲に入っています。口の形と響きをそのまま保ってみましょう。`,
       ),
     );
@@ -169,7 +147,7 @@ export function generateAdvice(frame: AnalysisFrame | null): AdviceMessage[] {
         createAdvice(
           "f1-low",
           "info",
-          "口の開きを少し足す",
+          "次に試すこと",
           `もう少し口を大きく開けると「${selectedTarget.label}」に近づく可能性があります。`,
         ),
       );
@@ -180,7 +158,7 @@ export function generateAdvice(frame: AnalysisFrame | null): AdviceMessage[] {
         createAdvice(
           "f1-high",
           "info",
-          "口の開きを少し抑える",
+          "次に試すこと",
           "口が開きすぎている可能性があります。力を抜いて、少しだけ開きを小さくしてみてください。",
         ),
       );
@@ -191,7 +169,7 @@ export function generateAdvice(frame: AnalysisFrame | null): AdviceMessage[] {
         createAdvice(
           "f2-low",
           "info",
-          "響きを少し前へ",
+          "次に試すこと",
           "響きが奥寄りになっている可能性があります。舌先や唇の力を抜きながら、少し前寄りの響きを試してみてください。",
         ),
       );
@@ -202,7 +180,7 @@ export function generateAdvice(frame: AnalysisFrame | null): AdviceMessage[] {
         createAdvice(
           "f2-high",
           "info",
-          "前寄りになりすぎないように",
+          "次に試すこと",
           "響きが前寄りになっている可能性があります。口を横に引きすぎないように意識してみてください。",
         ),
       );
@@ -216,23 +194,34 @@ export function generateAdvice(frame: AnalysisFrame | null): AdviceMessage[] {
     advice.push(
       createAdvice(
         "nearest-vowel",
-        "warning",
-        `少し「${nearestTarget.label}」に近い響きです`,
-        `現在の推定位置は「${selectedTarget.label}」より「${nearestTarget.label}」の中心に近く出ています。母音マップ上の対象エリアへゆっくり寄せてみてください。`,
+        "info",
+        "参考ヒント",
+        `少し「${nearestTarget.label}」に近い響きが出ています。母音マップ上の対象エリアへゆっくり寄せてみてください。`,
       ),
     );
   }
 
-  if (frame.stability.score < 0.42) {
+  if (advice.length < 2 && frame.stability.score < 0.42) {
     advice.push(
       createAdvice(
         "stability-low",
         "info",
-        "ゆっくり一定に伸ばす",
-        "推定位置の揺れが少し大きめです。息の量と口の形を急に変えず、同じ母音を保ってみてください。",
+        "次に試すこと",
+        "次は少し口の形を保って発声してみましょう。母音マップの点がまとまりやすくなります。",
       ),
     );
   }
 
-  return advice;
+  if (advice.length < 2) {
+    advice.push(
+      createAdvice(
+        "keep-going",
+        "info",
+        "次に試すこと",
+        "同じ母音をもう一度伸ばして、軌跡が目標エリアに近づくか見てみましょう。",
+      ),
+    );
+  }
+
+  return advice.slice(0, 2);
 }
