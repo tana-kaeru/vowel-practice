@@ -2,6 +2,8 @@ export type VowelSymbol = "あ" | "い" | "う" | "え" | "お";
 
 export type MicStatus = "idle" | "requesting" | "recording" | "error";
 
+export type MicSensitivity = "low" | "standard" | "high" | "max";
+
 export type FrequencyBin = {
   frequencyHz: number;
   decibels: number;
@@ -13,6 +15,17 @@ export type FormantEstimate = {
   f2Hz: number;
   confidence: number;
 };
+
+export type AnalysisStatus =
+  | "idle"
+  | "calibrating_noise"
+  | "listening"
+  | "no_voice"
+  | "too_quiet"
+  | "too_short"
+  | "unstable"
+  | "low_confidence"
+  | "ready";
 
 export type FrequencyRange = {
   min: number;
@@ -62,9 +75,18 @@ export type AdviceMessage = {
 
 export type AnalysisFrame = {
   selectedVowel: VowelSymbol;
+  status: AnalysisStatus;
+  statusMessage: string;
   formants: FormantEstimate | null;
   classification: VowelClassification | null;
   stability: StabilityResult;
   volume: number;
+  rawRms: number;
+  effectiveRms: number;
+  softwareGain: number;
+  dbfs: number;
+  noiseFloor: number | null;
+  currentThreshold: number;
+  micSensitivity: MicSensitivity;
   frequencyData: FrequencyBin[];
 };

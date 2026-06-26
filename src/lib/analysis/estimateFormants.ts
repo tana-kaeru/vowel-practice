@@ -1,6 +1,6 @@
 import type { FormantEstimate, FrequencyBin } from "@/types/vowel";
+import { VOLUME_THRESHOLDS } from "@/lib/analysis/stabilizeFormants";
 
-const MIN_VOLUME_FOR_FORMANTS = 0.08;
 const F1_RANGE_HZ = { min: 200, max: 1000 };
 const F2_RANGE_HZ = { min: 800, max: 3000 };
 const MIN_PEAK_DECIBELS = -82;
@@ -55,7 +55,10 @@ export function estimateFormants(
   frequencyData: FrequencyBin[],
   volume: number,
 ): FormantEstimate | null {
-  if (volume < MIN_VOLUME_FOR_FORMANTS || frequencyData.length === 0) {
+  if (
+    volume < VOLUME_THRESHOLDS.minFormantAnalysisVolume ||
+    frequencyData.length === 0
+  ) {
     return null;
   }
 

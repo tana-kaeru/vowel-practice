@@ -1,4 +1,4 @@
-export function getVolumeLevel(timeDomainData: Float32Array): number {
+export function getRmsLevel(timeDomainData: Float32Array): number {
   if (timeDomainData.length === 0) {
     return 0;
   }
@@ -7,5 +7,9 @@ export function getVolumeLevel(timeDomainData: Float32Array): number {
     return sum + value * value;
   }, 0);
 
-  return Math.min(1, Math.sqrt(sumSquares / timeDomainData.length) * 4);
+  return Math.sqrt(sumSquares / timeDomainData.length);
+}
+
+export function getVolumeLevel(timeDomainData: Float32Array): number {
+  return Math.min(1, getRmsLevel(timeDomainData) * 4);
 }

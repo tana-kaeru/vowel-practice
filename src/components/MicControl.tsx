@@ -5,24 +5,29 @@ import { createAudioAnalyser } from "@/lib/audio/createAudioAnalyser";
 import type { AudioAnalyserSession } from "@/lib/audio/createAudioAnalyser";
 import { getFrequencyData } from "@/lib/audio/getFrequencyData";
 import { getTimeDomainData } from "@/lib/audio/getTimeDomainData";
-import { getVolumeLevel } from "@/lib/audio/getVolumeLevel";
-import type { FrequencyBin, MicStatus } from "@/types/vowel";
+import { getRmsLevel } from "@/lib/audio/getVolumeLevel";
+import { MIC_SENSITIVITY_CONFIG } from "@/lib/analysis/stabilizeFormants";
+import type { FrequencyBin, MicSensitivity, MicStatus } from "@/types/vowel";
 
 type MicFrame = {
   frequencyData: FrequencyBin[];
-  volume: number;
+  rms: number;
 };
 
 type MicControlProps = {
   status: MicStatus;
+  sensitivity: MicSensitivity;
   onStatusChange: (status: MicStatus) => void;
+  onSensitivityChange: (sensitivity: MicSensitivity) => void;
   onFrame: (frame: MicFrame) => void;
   onSessionChange?: (session: AudioAnalyserSession | null) => void;
 };
 
 export default function MicControl({
   status,
+  sensitivity,
   onStatusChange,
+  onSensitivityChange,
   onFrame,
   onSessionChange,
 }: MicControlProps) {
@@ -90,13 +95,13 @@ export default function MicControl({
         }
 
         const timeDomainData = getTimeDomainData(currentSession.analyser);
-        const volume = getVolumeLevel(timeDomainData);
+        const rms = getRmsLevel(timeDomainData);
         const frequencyData = getFrequencyData(
           currentSession.analyser,
           currentSession.audioContext.sampleRate,
         );
 
-        onFrameRef.current({ frequencyData, volume });
+        onFrameRef.current({ frequencyData, rms });
         animationFrameRef.current = requestAnimationFrame(tick);
       };
 
@@ -162,6 +167,32 @@ export default function MicControl({
       >
         {isRequesting ? "マイク許可を確認中" : isRecording ? "停止" : "開始"}
       </button>
+      <div className="mt-4">
+        <p className="mb-2 text-xs font-medium text-zinc-600">マイク感度</p>
+        <div className="grid grid-cols-4 gap-2">
+          {(["low", "standard", "high", "max"] as const).map((item) => {
+            const isSelected = item === sensitivity;
+
+            return (
+              <button
+                key={item}
+                type="button"
+                onClick={() => onSensitivityChange(item)}
+                className={`h-9 rounded-lg border px-3 text-sm font-medium transition ${
+                  isSelected
+                    ? "border-zinc-950 bg-zinc-950 text-white"
+                    : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                }`}
+              >
+                {MIC_SENSITIVITY_CONFIG[item].label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-xs leading-5 text-zinc-500">
+          AirPodsなどのBluetoothマイクでは「高」または「最大」にすると安定する場合があります。
+        </p>
+      </div>
       {errorMessage ? (
         <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           {errorMessage}

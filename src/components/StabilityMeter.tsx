@@ -1,12 +1,27 @@
-import type { StabilityResult } from "@/types/vowel";
+import { VOLUME_THRESHOLDS } from "@/lib/analysis/stabilizeFormants";
+import type { AnalysisStatus, StabilityResult } from "@/types/vowel";
 
 type StabilityMeterProps = {
   volume: number | null;
+  rawRms: number | null;
+  effectiveRms: number | null;
+  softwareGain: number | null;
+  dbfs: number | null;
+  noiseFloor: number | null;
+  currentThreshold: number | null;
+  status: AnalysisStatus | null;
   stability: StabilityResult | null;
 };
 
-function getVolumeGuide(volume: number | null) {
-  if (volume === null) {
+function formatRms(value: number | null) {
+  return value === null ? "--" : value.toFixed(4);
+}
+
+function getVolumeGuide(
+  effectiveRms: number | null,
+  currentThreshold: number | null,
+) {
+  if (effectiveRms === null) {
     return {
       label: "未入力",
       className: "bg-zinc-300",
@@ -14,19 +29,28 @@ function getVolumeGuide(volume: number | null) {
     };
   }
 
-  if (volume < 0.12) {
+  if (currentThreshold !== null && effectiveRms < currentThreshold) {
     return {
-      label: "小さすぎる",
+      label: "小さめ",
       className: "bg-amber-500",
-      message: "もう少し大きく、またはマイクに近づいて発声してください。",
+      message:
+        "マイクに入る音量が小さめです。Bluetoothマイクでは感度を高または最大にすると安定する場合があります。",
     };
   }
 
-  if (volume > 0.82) {
+  if (effectiveRms > VOLUME_THRESHOLDS.tooLoud) {
     return {
-      label: "大きすぎる",
+      label: "大きめ",
       className: "bg-red-500",
       message: "音割れを避けるため、少し小さめに発声してください。",
+    };
+  }
+
+  if (effectiveRms < VOLUME_THRESHOLDS.good) {
+    return {
+      label: "検出中",
+      className: "bg-sky-500",
+      message: "もう少し長く、または少しはっきり発音してみましょう。",
     };
   }
 
@@ -39,11 +63,18 @@ function getVolumeGuide(volume: number | null) {
 
 export default function StabilityMeter({
   volume,
+  rawRms,
+  effectiveRms,
+  softwareGain,
+  dbfs,
+  noiseFloor,
+  currentThreshold,
+  status,
   stability,
 }: StabilityMeterProps) {
   const volumeScore = volume === null ? 0 : Math.round(volume * 100);
   const stabilityScore = stability ? Math.round(stability.score * 100) : 0;
-  const guide = getVolumeGuide(volume);
+  const guide = getVolumeGuide(effectiveRms, currentThreshold);
 
   return (
     <div>
@@ -67,6 +98,14 @@ export default function StabilityMeter({
         {stability
           ? `${stability.label} (${stabilityScore}%) / 揺れ ${stability.variation}`
           : "--"}
+      </p>
+      <p className="mt-2 text-[11px] leading-5 text-zinc-400">
+        rawRMS: {formatRms(rawRms)} / effectiveRMS:{" "}
+        {formatRms(effectiveRms)} / gain:{" "}
+        {softwareGain === null ? "--" : `x${softwareGain}`} / noiseFloor:{" "}
+        {formatRms(noiseFloor)} / threshold: {formatRms(currentThreshold)} /
+        dBFS: {dbfs === null ? "--" : `${dbfs.toFixed(1)} dB`} / status:{" "}
+        {status ?? "--"}
       </p>
     </div>
   );

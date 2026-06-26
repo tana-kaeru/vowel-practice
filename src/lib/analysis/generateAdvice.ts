@@ -1,5 +1,6 @@
 import type { AdviceMessage, AnalysisFrame } from "@/types/vowel";
 import { getVowelTarget } from "@/lib/data/vowelTargets";
+import { VOLUME_THRESHOLDS } from "@/lib/analysis/stabilizeFormants";
 
 function createAdvice(
   id: string,
@@ -27,19 +28,107 @@ export function generateAdvice(frame: AnalysisFrame | null): AdviceMessage[] {
     ];
   }
 
+  if (frame.status === "no_voice") {
+    return [
+      createAdvice(
+        "no-voice",
+        "info",
+        "声らしい入力を待っています",
+        "Bluetoothマイクでは入力レベルが小さく出ることがあります。母音を少し長く、はっきり発音してみましょう。",
+      ),
+    ];
+  }
+
+  if (frame.status === "too_quiet") {
+    return [
+      createAdvice(
+        "volume-low",
+        "warning",
+        "マイクに入る音量が少し小さめです",
+        "声は検出されていますが、解析には少し足りない状態です。AirPodsなどのBluetoothマイクでは、マイク感度を「高」または「最大」にすると安定する場合があります。",
+      ),
+    ];
+  }
+
+  if (frame.status === "calibrating_noise") {
+    return [
+      createAdvice(
+        "calibrating",
+        "info",
+        "環境音を測定中です",
+        "マイク開始直後の環境音を基準にして、音声検出のしきい値を調整しています。",
+      ),
+    ];
+  }
+
+  if (frame.status === "listening") {
+    return [
+      createAdvice(
+        "listening",
+        "info",
+        "音が安定してから判定します",
+        "発声開始直後は推定値が揺れやすいため、少し待ってから表示します。",
+      ),
+    ];
+  }
+
+  if (frame.status === "too_short") {
+    return [
+      createAdvice(
+        "too-short",
+        "info",
+        "もう少し長く伸ばしてみましょう",
+        "母音を少し長く伸ばすと、F1/F2の位置を安定して見やすくなります。",
+      ),
+    ];
+  }
+
+  if (frame.status === "unstable") {
+    return [
+      createAdvice(
+        "unstable",
+        "info",
+        "声の高さと大きさを一定にしてみましょう",
+        "推定値の揺れが大きい間は判定を保留します。同じ母音を急に変えずに伸ばしてみてください。",
+      ),
+    ];
+  }
+
+  if (frame.status === "low_confidence") {
+    return [
+      createAdvice(
+        "low-confidence",
+        "info",
+        "音が安定してから判定します",
+        "confidenceが低いため、近い母音はまだ断定しません。声の大きさと口の形を一定にしてみましょう。",
+      ),
+    ];
+  }
+
   const selectedTarget = getVowelTarget(frame.selectedVowel);
   const nearestTarget = frame.classification
     ? getVowelTarget(frame.classification.nearestVowel)
     : null;
   const advice: AdviceMessage[] = [];
 
-  if (frame.volume < 0.12) {
+  if (frame.noiseFloor !== null && frame.noiseFloor > VOLUME_THRESHOLDS.highNoiseFloor) {
+    advice.push(
+      createAdvice(
+        "noise-floor-high",
+        "warning",
+        "周囲の音が少し大きめです",
+        "環境音が高めに測定されています。可能であれば静かな場所で試すと、音声検出が安定しやすくなります。",
+      ),
+    );
+  }
+
+  if (frame.effectiveRms < VOLUME_THRESHOLDS.good) {
     advice.push(
       createAdvice(
         "volume-low",
         "warning",
-        "もう少し声を乗せる",
-        "入力音量が少し小さめです。無理のない範囲で、マイクに近づくか声を少し安定させてみてください。",
+        "マイクに入る音量が少し小さめです",
+        "Bluetoothマイクでは入力レベルが小さく出ることがあります。マイク感度を「高」または「最大」にすると安定する場合があります。",
       ),
     );
   } else {
