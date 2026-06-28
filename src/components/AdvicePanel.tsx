@@ -48,7 +48,7 @@ export default function AdvicePanel({ messages }: AdvicePanelProps) {
         ))}
       </div>
       <p className="mt-3 text-xs leading-5 text-zinc-500">
-        この表示は医療的診断や専門的評価ではなく、発声練習のための簡易的な可視化です。
+        この表示は参考ヒントです。端末やマイク環境によって結果が変わる場合があります。
       </p>
     </section>
   );

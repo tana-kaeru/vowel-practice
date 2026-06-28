@@ -49,6 +49,11 @@ export async function createAudioAnalyser({
   }
 
   const audioContext = new AudioContextConstructor();
+
+  if (audioContext.state === "suspended") {
+    await audioContext.resume();
+  }
+
   const analyser = audioContext.createAnalyser();
   analyser.fftSize = fftSize;
   analyser.smoothingTimeConstant = smoothingTimeConstant;

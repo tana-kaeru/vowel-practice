@@ -33,6 +33,28 @@ type MicControlProps = {
   onSessionChange?: (session: AudioAnalyserSession | null) => void;
 };
 
+function getMicrophoneErrorMessage(error: unknown) {
+  if (!(error instanceof DOMException)) {
+    return error instanceof Error
+      ? error.message
+      : "マイクの開始に失敗しました。";
+  }
+
+  if (error.name === "NotAllowedError" || error.name === "SecurityError") {
+    return "マイクの使用が許可されていません。ブラウザの権限設定を確認してください。";
+  }
+
+  if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
+    return "利用できるマイクが見つかりません。接続状態を確認してください。";
+  }
+
+  if (error.name === "NotReadableError" || error.name === "TrackStartError") {
+    return "マイクを開始できませんでした。ほかのアプリで使用中でないか確認してください。";
+  }
+
+  return error.message || "マイクの開始に失敗しました。";
+}
+
 export default function MicControl({
   status,
   sensitivity,
@@ -48,10 +70,15 @@ export default function MicControl({
   const animationFrameRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
   const onFrameRef = useRef(onFrame);
+  const onSessionChangeRef = useRef(onSessionChange);
 
   useEffect(() => {
     onFrameRef.current = onFrame;
   }, [onFrame]);
+
+  useEffect(() => {
+    onSessionChangeRef.current = onSessionChange;
+  }, [onSessionChange]);
 
   const stopSession = useCallback(async () => {
     if (animationFrameRef.current !== null) {
@@ -73,10 +100,10 @@ export default function MicControl({
 
   const stop = useCallback(async () => {
     await stopSession();
-    onSessionChange?.(null);
+    onSessionChangeRef.current?.(null);
 
     onStatusChange("idle");
-  }, [onSessionChange, onStatusChange, stopSession]);
+  }, [onStatusChange, stopSession]);
 
   const start = useCallback(async () => {
     setErrorMessage(null);
@@ -96,7 +123,7 @@ export default function MicControl({
       }
 
       sessionRef.current = session;
-      onSessionChange?.(session);
+      onSessionChangeRef.current?.(session);
       onStatusChange("recording");
 
       const tick = () => {
@@ -104,6 +131,10 @@ export default function MicControl({
 
         if (!currentSession) {
           return;
+        }
+
+        if (currentSession.audioContext.state === "suspended") {
+          void currentSession.audioContext.resume();
         }
 
         const timeDomainData = getTimeDomainData(currentSession.analyser);
@@ -119,24 +150,23 @@ export default function MicControl({
 
       tick();
     } catch (error) {
+      console.error("Failed to start microphone", error);
       await stopSession();
-      onSessionChange?.(null);
+      onSessionChangeRef.current?.(null);
       onStatusChange("error");
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "マイクの開始に失敗しました。",
-      );
+      setErrorMessage(getMicrophoneErrorMessage(error));
     }
-  }, [onSessionChange, onStatusChange, stopSession]);
+  }, [onStatusChange, stopSession]);
 
   useEffect(() => {
+    mountedRef.current = true;
+
     return () => {
       mountedRef.current = false;
-      onSessionChange?.(null);
+      onSessionChangeRef.current?.(null);
       void stopSession();
     };
-  }, [onSessionChange, stopSession]);
+  }, [stopSession]);
 
   const isRecording = status === "recording";
   const isRequesting = status === "requesting";
@@ -148,7 +178,7 @@ export default function MicControl({
         <div>
           <h2 className="text-base font-semibold text-zinc-950">マイク操作</h2>
           <p className="mt-1 text-sm text-zinc-600">
-            音声はブラウザ内で解析し、保存や送信はしません。
+            初期版では、音声データはサーバーに送信せず、ブラウザ内で処理します。
           </p>
         </div>
         <span

@@ -18,6 +18,31 @@ export type FormantEstimate = {
   confidence: number;
 };
 
+export type FormantDebugInfo = {
+  rawF1Hz: number | null;
+  rawF2Hz: number | null;
+  filteredF1Hz: number | null;
+  filteredF2Hz: number | null;
+  displayF1Hz: number | null;
+  displayF2Hz: number | null;
+  accepted: boolean;
+  rejectedReason: string | null;
+  recentAcceptedPointCount: number;
+  rejectedFrameCount: number;
+  jumpDistance: number | null;
+  confidence: number | null;
+  displayStepF1Hz: number | null;
+  displayStepF2Hz: number | null;
+  wasClamped: boolean;
+  clampReason: string | null;
+  tracePointAdded: boolean;
+  tracePointSkippedReason: string | null;
+  currentTracePointCount: number;
+  completedTraceCount: number;
+  lastTraceSaveReason: string | null;
+  lastTraceSkipReason: string | null;
+};
+
 export type AnalysisStatus =
   | "idle"
   | "calibrating_noise"
@@ -92,6 +117,7 @@ export type AnalysisFrame = {
   currentThreshold: number;
   micSensitivity: MicSensitivity;
   frequencyData: FrequencyBin[];
+  formantDebug?: FormantDebugInfo;
 };
 
 export type VowelTracePoint = {
